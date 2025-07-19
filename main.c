@@ -1,32 +1,39 @@
 // Expense Tracker in C
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define MAX_EXPENSES 100
-
-struct Expense {
-    char description[100];
-    float amount;
-};
+#define MAX_DESC 100
 
 int main() {
-    struct Expense expenses[MAX_EXPENSES];
-    int count = 0;
+    float amount, total = 0.0;
+    char description[MAX_DESC];
 
-    char desc[100];
-    float amt;
+    printf("=== Expense Tracker ===\n");
+    printf("Type 'exit' as description to quit.\n");
 
-    printf("Enter expense description: ");
-    fgets(desc, sizeof(desc), stdin);
+    while (1) {
+        printf("\nEnter description: ");
+        fgets(description, MAX_DESC, stdin);
+        description[strcspn(description, "\n")] = 0; // Remove newline
 
-    printf("Enter amount: $");
-    scanf("%f", &amt);
+        if (strcmp(description, "exit") == 0) {
+            break;
+        }
 
-    // Store the expense
-    snprintf(expenses[count].description, sizeof(expenses[count].description), "%s", desc);
-    expenses[count].amount = amt;
-    count++;
+        printf("Enter amount: $");
+        if (scanf("%f", &amount) != 1) {
+            printf("Invalid input. Please enter a number.\n");
+            while (getchar() != '\n'); // Clear input buffer
+            continue;
+        }
 
-    printf("✅ Expense added: %s - $%.2f\n", expenses[0].description, expenses[0].amount);
+        total += amount;
+        printf("✅ Added: %-20s $%.2f\n", description, amount);
+        while (getchar() != '\n'); // Clear input buffer
+    }
 
+    printf("\n📊 Total spent: $%.2f\n", total);
     return 0;
 }
+
