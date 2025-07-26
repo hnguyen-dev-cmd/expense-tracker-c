@@ -37,16 +37,28 @@ void delete_expense(Expense expenses[], int *count, float *total) {
     }
     (*count)--;
 
-    // Rewrite the file with updated data
-    FILE *file = fopen("expenses.txt", "w"); // Overwrite
-    if (file == NULL) {
-        printf("❌ Error updating file!\n");
-        return;
-    }
-    for (int i = 0; i < *count; i++) {
-        fprintf(file, "%-20s $%.2f\n", expenses[i].description, expenses[i].amount);
-    }
-    fclose(file);
+// After user deletes an expense (inside your main loop or a function)
+printf("\nUpdated Expenses:\n");
+for (int i = 0; i < *count; i++) {
+    printf("%d. %-20s $%.2f\n", i + 1, expenses[i].description, expenses[i].amount);
+}
+
+// ✅ Rewrite the file with updated expenses
+FILE *file = fopen("expenses.txt", "w"); // Open in write mode to overwrite
+if (file == NULL) {
+    printf("❌ Error rewriting file!\n");
+    return;
+}
+
+*total = 0.0;
+for (int i = 0; i < *count; i++) {
+    fprintf(file, "%-20s $%.2f\n", expenses[i].description, expenses[i].amount);
+    *total += expenses[i].amount;
+}
+fclose(file);
+printf("\n💾 File updated successfully after deletion!\n");
+printf("📊 New total: $%.2f\n", *total);
+
 }
 
 
