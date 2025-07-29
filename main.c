@@ -1,10 +1,12 @@
 // Expense Tracker in C
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct {
     char description[100];
     float amount;
+    char timestamp[30];
 } Expense;
 
 void delete_expense(Expense expenses[], int *count, float *total) {
@@ -15,7 +17,7 @@ void delete_expense(Expense expenses[], int *count, float *total) {
 
     printf("\n📋 Expenses:\n");
     for (int i = 0; i < *count; i++) {
-        printf("%d. %-20s $%.2f\n", i + 1, expenses[i].description, expenses[i].amount);
+        printf("%d. %-20s $%.2f [%s]\n", i + 1, expenses[i].description, expenses[i].amount, expenses[i].timestamp);
     }
 
     printf("\nWhich expense do you want to delete? (Enter #): ");
@@ -27,7 +29,11 @@ void delete_expense(Expense expenses[], int *count, float *total) {
     }
 
     index--; // Convert to 0-based index
-    printf("✅ Deleted: %s - $%.2f\n", expenses[index].description, expenses[index].amount);
+
+    printf("✅ Deleted: %s - $%.2f [%s]\n", 
+        expenses[index].description, 
+        expenses[index].amount, 
+        expenses[index].timestamp);
 
     *total -= expenses[index].amount;
 
@@ -37,61 +43,75 @@ void delete_expense(Expense expenses[], int *count, float *total) {
     }
     (*count)--;
 
-// After user deletes an expense (inside your main loop or a function)
-printf("\nUpdated Expenses:\n");
-for (int i = 0; i < *count; i++) {
-    printf("%d. %-20s $%.2f\n", i + 1, expenses[i].description, expenses[i].amount);
+    // Rewrite the file with updated expenses
+    FILE *file = fopen("expenses.txt", "w");
+    if (file == NULL) {
+        printf("❌ Error rewriting file!\n");
+        return;
+    }
+
+    *total = 0.0;
+    for (int i = 0; i < *count; i++) {
+        fprintf(file, "%-20s $%.2f %s\n", 
+            expenses[i].description, 
+            expenses[i].amount, 
+            expenses[i].timestamp);
+        *total += expenses[i].amount;
+    }
+
+    fclose(file);
+    printf("\n💾 File updated successfully after deletion!\n");
+    printf("📊 New total: $%.2f\n", *total);
 }
 
-// ✅ Rewrite the file with updated expenses
-FILE *file = fopen("expenses.txt", "w"); // Open in write mode to overwrite
-if (file == NULL) {
-    printf("❌ Error rewriting file!\n");
-    return;
+void sortExpenses(Expense expenses[], int count) {
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - i - 1; j++) {
+            if (expenses[j].amount > expenses[j + 1].amount) {
+                Expense temp = expenses[j];
+                expenses[j] = expenses[j + 1];
+                expenses[j + 1] = temp;
+            }
+        }
+    }
 }
-
-*total = 0.0;
-for (int i = 0; i < *count; i++) {
-    fprintf(file, "%-20s $%.2f\n", expenses[i].description, expenses[i].amount);
-    *total += expenses[i].amount;
-}
-fclose(file);
-printf("\n💾 File updated successfully after deletion!\n");
-printf("📊 New total: $%.2f\n", *total);
-
-}
-
 
 int main() {
-    Expense expenses[100];  // Array to hold up to 100 expenses
-    int count = 0;          // Number of expenses loaded
+    Expense expenses[100];
+    int count = 0;
+    float total = 0.0;
     char description[100];
     float amount;
-    float total = 0.0;
 
-    FILE *file = fopen("expenses.txt", "a+"); // a+ = read + append
+    FILE *file = fopen("expenses.txt", "a+");
     if (file == NULL) {
         printf("❌ Error opening file!\n");
         return 1;
     }
-    rewind(file); // Go to start of file
 
-    while (fscanf(file, "%99[^$] $%f\n", expenses[count].description, &expenses[count].amount) == 2) {
+    rewind(file); // Read from start
+
+    while (fscanf(file, "%99[^$] $%f %[^\n]\n", 
+        expenses[count].description, 
+        &expenses[count].amount, 
+        expenses[count].timestamp) == 3) {
+        total += expenses[count].amount;
         count++;
     }
 
-     printf("📂 Previous Expenses:\n");
-     for (int i = 0; i < count; i++) {
-         printf("📝 %-20s $%.2f\n", expenses[i].description, expenses[i].amount);
-         total += expenses[i].amount;
+    printf("📂 Previous Expenses:\n");
+    for (int i = 0; i < count; i++) {
+        printf("📝 %-20s $%.2f [%s]\n", 
+            expenses[i].description, 
+            expenses[i].amount, 
+            expenses[i].timestamp);
     }
+
     printf("💸 Current total before new entries: $%.2f\n\n", total);
 
-    // Input new expenses
     printf("=== Expense Tracker ===\n");
-    printf("Type 'exit' as description to quit.\n\n");
+    printf("Type 'exit' as description to quit.\n");
     printf("Type 'delete' as description to delete an expense.\n\n");
-
 
     while (count < 100) {
         printf("Enter description: ");
@@ -103,46 +123,55 @@ int main() {
         }
 
         if (strcmp(description, "delete") == 0) {
-        delete_expense(expenses, &count, &total);
-	while (getchar() != '\n')
-		;
-        continue;
-        }
-
-        printf("Enter amount: $");
-        if (scanf("%f", &amount) != 1) {
-            printf("Invalid input. Please enter a number.\n");
+            delete_expense(expenses, &count, &total);
             while (getchar() != '\n');
             continue;
         }
 
-        total += amount;
+        // Get current time
+        time_t now = time(NULL);
+        struct tm *t = localtime(&now);
+        char currentTime[30];
+        strftime(currentTime, sizeof(currentTime), "%Y-%m-%d %I:%M %p", t);
+
+        printf("Enter amount: $");
+        if (scanf("%f", &amount) != 1) {
+            printf("❌ Invalid input. Please enter a number.\n");
+            while (getchar() != '\n');
+            continue;
+        }
 
         strcpy(expenses[count].description, description);
         expenses[count].amount = amount;
+        strcpy(expenses[count].timestamp, currentTime);
+
+        total += amount;
         count++;
 
-        // Save to file
-        fprintf(file, "%-20s $%.2f\n", description, amount);
-        fflush(file); // ensure it's written
+        fprintf(file, "%-20s $%.2f %s\n", description, amount, currentTime);
+        fflush(file);
 
-        printf("✅ Added: %-20s $%.2f\n\n", description, amount);
+        printf("✅ Added: %-20s $%.2f [%s]\n\n", description, amount, currentTime);
 
         while (getchar() != '\n');
     }
 
     fclose(file);
 
+    sortExpenses(expenses, count);
+
     printf("\n📋 Final Expense List:\n");
     float finalTotal = 0.0;
 
     for (int i = 0; i < count; i++) {
-        printf("🔸 %-20s $%.2f\n", expenses[i].description, expenses[i].amount);
+        printf("🔸 %-20s $%.2f [%s]\n", 
+            expenses[i].description, 
+            expenses[i].amount, 
+            expenses[i].timestamp);
         finalTotal += expenses[i].amount;
     }
 
     printf("\n📊 Final total: $%.2f\n", finalTotal);
-
     printf("💾 All expenses saved in 'expenses.txt'\n");
 
     return 0;
