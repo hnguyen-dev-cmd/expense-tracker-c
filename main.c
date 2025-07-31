@@ -174,5 +174,22 @@ int main() {
     printf("\n📊 Final total: $%.2f\n", finalTotal);
     printf("💾 All expenses saved in 'expenses.txt'\n");
 
+// ✅ Save to CSV for Excel
+FILE *csvFile = fopen("expenses.csv", "w");
+if (csvFile == NULL) {
+    printf("❌ Error creating CSV file!\n");
+} else {
+    fprintf(csvFile, "Description,Amount,Timestamp\n");
+    for (int i = 0; i < count; i++) {
+        fprintf(csvFile, "\"%s\",%.2f,\"%s\"\n",
+            expenses[i].description,
+            expenses[i].amount,
+            expenses[i].timestamp);
+    }
+    fclose(csvFile);
+    printf("📄 All expenses also saved to 'expenses.csv' (Excel format).\n");
+}
+
+
     return 0;
 }
