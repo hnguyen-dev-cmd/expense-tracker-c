@@ -140,7 +140,7 @@ int main() {
             while (getchar() != '\n');
             continue;
         }
-
+        //qwer
         strcpy(expenses[count].description, description);
         expenses[count].amount = amount;
         strcpy(expenses[count].timestamp, currentTime);
